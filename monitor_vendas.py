@@ -2,20 +2,22 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import urllib.parse
+import os
 
 MOOMBOX_URL   = "https://expositores.moombox.com.br"
 USUARIO       = "moombox"
 SENHA         = "admin2020b"
 CALLMEBOT_TEL = "5521992971444"
-CALLMEBOT_KEY = "SUA_API_KEY_AQUI"
+CALLMEBOT_KEY = os.environ.get("CALLMEBOT_KEY", "")
 
 LOJAS = {
-    "1": "Barra Shopping",
-    "3": "Rio Sul",
+    "1": "Rio Sul",
+    "3": "Barra Shopping",
     "4": "NorteShopping",
 }
 
 session = requests.Session()
+
 
 def login():
     r = session.get(MOOMBOX_URL + "/user/login")
@@ -31,10 +33,11 @@ def login():
         "LoginForm[password]": SENHA,
         "LoginForm[rememberMe]": "0",
     })
-    if "logout" in resp.text.lower() or resp.url != MOOMBOX_URL + "/user/login":
+    if "logout" in resp.text.lower():
         print("Login OK")
     else:
         print("AVISO: Login pode ter falhado")
+
 
 def buscar_totais_hora(data_str, hora):
     d = urllib.parse.quote(data_str + " - " + data_str)
@@ -47,25 +50,43 @@ def buscar_totais_hora(data_str, hora):
     soup = BeautifulSoup(r.text, "html.parser")
     totais = {lid: 0.0 for lid in LOJAS}
     loja_atual = None
+
     for row in soup.select("table tbody tr"):
         cols = row.find_all("td")
         if not cols:
             continue
-        primeira = cols[0].get_text(strip=True)
-        if primeira in LOJAS:
-            loja_atual = primeira
+
+        # Linha com 17 colunas: primeira do grupo (tem ID de loja em col[1])
+        if len(cols) == 17:
+            c1 = cols[1].get_text(strip=True)
+            if c1 in LOJAS:
+                loja_atual = c1
+                # col[3]=data_hora, col[4]=valor
+                dh = cols[3].get_text(strip=True)
+                try:
+                    dt = datetime.strptime(dh, "%d/%m/%Y %H:%M:%S")
+                    if dt.hour == hora:
+                        v = cols[4].get_text(strip=True).replace(",", ".").replace(" ", "")
+                        totais[loja_atual] += float(v)
+                except:
+                    pass
+            # else: linha Total ou geral, ignorar
             continue
-        if loja_atual is None or len(cols) < 4:
-            continue
-        data_hora_txt = cols[2].get_text(strip=True)
-        try:
-            dt = datetime.strptime(data_hora_txt, "%d/%m/%Y %H:%M:%S")
-            if dt.hour == hora:
-                v = cols[3].get_text(strip=True).replace(",", ".").replace(" ", "")
-                totais[loja_atual] += float(v)
-        except:
-            pass
+
+        # Linha com 16 colunas: continuacao do grupo
+        # col[2]=data_hora, col[3]=valor
+        if len(cols) == 16 and loja_atual:
+            dh = cols[2].get_text(strip=True)
+            try:
+                dt = datetime.strptime(dh, "%d/%m/%Y %H:%M:%S")
+                if dt.hour == hora:
+                    v = cols[3].get_text(strip=True).replace(",", ".").replace(" ", "")
+                    totais[loja_atual] += float(v)
+            except:
+                pass
+
     return totais
+
 
 def seta(val_atual, val_ref):
     if val_ref == 0:
@@ -75,12 +96,17 @@ def seta(val_atual, val_ref):
     sinal = "+" if pct >= 0 else ""
     return direcao, sinal + "{:.1f}%".format(pct)
 
+
 def formatar_brl(v):
     s = "{:,.2f}".format(v)
     s = s.replace(",", "X").replace(".", ",").replace("X", ".")
     return "R$ " + s
 
+
 def enviar_whatsapp(msg):
+    if not CALLMEBOT_KEY:
+        print("WhatsApp ignorado: CALLMEBOT_KEY nao configurado.")
+        return
     url = "https://api.callmebot.com/whatsapp.php"
     params = {"phone": CALLMEBOT_TEL, "text": msg, "apikey": CALLMEBOT_KEY}
     try:
@@ -89,11 +115,12 @@ def enviar_whatsapp(msg):
     except Exception as e:
         print("Erro WhatsApp: " + str(e))
 
+
 def main():
     agora = datetime.now()
     hora_atual = agora.hour
     if hora_atual < 11 or hora_atual > 22:
-        print("Fora do horario de funcionamento.")
+        print("Fora do horario de funcionamento: " + str(hora_atual) + "h")
         return
     print("Iniciando coleta - " + agora.strftime("%d/%m/%Y %H:%M"))
     login()
@@ -121,11 +148,11 @@ def main():
     ano_ant = ano_ant + timedelta(days=diff)
     ano_ant_str = ano_ant.strftime("%d/%m/%Y")
     print("Buscando dados para hora " + str(hora_atual) + "h...")
-    atual  = buscar_totais_hora(hoje,         hora_atual)
-    d_ont  = buscar_totais_hora(ontem,        hora_atual)
-    d_sem  = buscar_totais_hora(sem_ant,      hora_atual)
-    d_mes  = buscar_totais_hora(mes_ant_str,  hora_atual)
-    d_ano  = buscar_totais_hora(ano_ant_str,  hora_atual)
+    atual = buscar_totais_hora(hoje,        hora_atual)
+    d_ont = buscar_totais_hora(ontem,       hora_atual)
+    d_sem = buscar_totais_hora(sem_ant,     hora_atual)
+    d_mes = buscar_totais_hora(mes_ant_str, hora_atual)
+    d_ano = buscar_totais_hora(ano_ant_str, hora_atual)
     linhas = [
         "Vendas Cartao Credito - {:02d}h".format(hora_atual),
         "Data: " + hoje,
@@ -133,24 +160,26 @@ def main():
     ]
     total_geral = 0.0
     for lid, nome in LOJAS.items():
-        v     = atual.get(lid, 0.0)
+        v = atual.get(lid, 0.0)
         total_geral += v
-        e1,p1 = seta(v, d_ont.get(lid, 0.0))
-        e2,p2 = seta(v, d_sem.get(lid, 0.0))
-        e3,p3 = seta(v, d_mes.get(lid, 0.0))
-        e4,p4 = seta(v, d_ano.get(lid, 0.0))
+        e1, p1 = seta(v, d_ont.get(lid, 0.0))
+        e2, p2 = seta(v, d_sem.get(lid, 0.0))
+        e3, p3 = seta(v, d_mes.get(lid, 0.0))
+        e4, p4 = seta(v, d_ano.get(lid, 0.0))
+        linhas.append("*" + nome + "*:  " + formatar_brl(v))
+        linhas.append("  " + e1 + " vs ontem ("   + ontem       + "): " + formatar_brl(d_ont.get(lid, 0.0)) + " (" + p1 + ")")
+        linhas.append("  " + e2 + " vs sem.ant (" + sem_ant     + "): " + formatar_brl(d_sem.get(lid, 0.0)) + " (" + p2 + ")")
+        linhas.append("  " + e3 + " vs mes ant (" + mes_ant_str + "): " + formatar_brl(d_mes.get(lid, 0.0)) + " (" + p3 + ")")
+        linhas.append("  " + e4 + " vs ano ant (" + ano_ant_str + "): " + formatar_brl(d_ano.get(lid, 0.0)) + " (" + p4 + ")")
         linhas.append("")
-        linhas.append("*" + nome + "*: " + formatar_brl(v))
-        linhas.append("  " + e1 + " vs ontem (" + ontem + "): " + formatar_brl(d_ont.get(lid,0)) + " (" + p1 + ")")
-        linhas.append("  " + e2 + " vs sem.ant (" + sem_ant + "): " + formatar_brl(d_sem.get(lid,0)) + " (" + p2 + ")")
-        linhas.append("  " + e3 + " vs mes ant (" + mes_ant_str + "): " + formatar_brl(d_mes.get(lid,0)) + " (" + p3 + ")")
-        linhas.append("  " + e4 + " vs ano ant (" + ano_ant_str + "): " + formatar_brl(d_ano.get(lid,0)) + " (" + p4 + ")")
-    linhas.append("")
-    linhas.append("-------------------------")
+    linhas.append("-----------------------------")
     linhas.append("TOTAL GERAL: " + formatar_brl(total_geral))
     mensagem = "\n".join(linhas)
+    print("=" * 40)
     print(mensagem)
+    print("=" * 40)
     enviar_whatsapp(mensagem)
+
 
 if __name__ == "__main__":
     main()
