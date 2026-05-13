@@ -99,17 +99,17 @@ except Exception as e:
         print("Erro WhatsApp: " + str(e))
 
 
-def main():
-        agora = datetime.now()
-    hora_atual = agora.hour
-    if hora_atual < 11 or hora_atual > 22:
-                print("Fora do horario de funcionamento: " + str(hora_atual) + "h")
-        return
-    print("Iniciando coleta - " + agora.strftime("%d/%m/%Y %H:%M"))
+                       def main():
+                               agora = datetime.now()
+                               hora_atual = agora.hour
+                               if hora_atual < 11 or hora_atual > 22:
+                                           print("Fora do horario de funcionamento: " + str(hora_atual) + "h")
+                                           return
+                                       print("Iniciando coleta - " + agora.strftime("%d/%m/%Y %H:%M"))
     login()
-    hoje      = agora.strftime("%d/%m/%Y")
-    ontem     = (agora - timedelta(days=1)).strftime("%d/%m/%Y")
-    sem_ant   = (agora - timedelta(weeks=1)).strftime("%d/%m/%Y")
+    hoje     = agora.strftime("%d/%m/%Y")
+    ontem    = (agora - timedelta(days=1)).strftime("%d/%m/%Y")
+    sem_ant  = (agora - timedelta(weeks=1)).strftime("%d/%m/%Y")
     try:
                 if agora.month > 1:
                                 mes_ant = agora.replace(month=agora.month - 1)
@@ -119,7 +119,7 @@ except ValueError:
         import calendar
         if agora.month > 1:
                         m = agora.month - 1
-                        y = agora.year
+            y = agora.year
 else:
             m = 12
             y = agora.year - 1
@@ -131,11 +131,11 @@ else:
     ano_ant = ano_ant + timedelta(days=diff)
     ano_ant_str = ano_ant.strftime("%d/%m/%Y")
     print("Buscando dados para hora " + str(hora_atual) + "h...")
-    atual  = buscar_totais_hora(hoje,        hora_atual)
-    d_ont  = buscar_totais_hora(ontem,       hora_atual)
-    d_sem  = buscar_totais_hora(sem_ant,     hora_atual)
-    d_mes  = buscar_totais_hora(mes_ant_str, hora_atual)
-    d_ano  = buscar_totais_hora(ano_ant_str, hora_atual)
+    atual = buscar_totais_hora(hoje,        hora_atual)
+    d_ont = buscar_totais_hora(ontem,       hora_atual)
+    d_sem = buscar_totais_hora(sem_ant,     hora_atual)
+    d_mes = buscar_totais_hora(mes_ant_str, hora_atual)
+    d_ano = buscar_totais_hora(ano_ant_str, hora_atual)
     linhas = [
                 "Vendas Cartao Credito - {:02d}h".format(hora_atual),
                 "Data: " + hoje,
@@ -143,7 +143,7 @@ else:
     ]
     total_geral = 0.0
     for lid, nome in LOJAS.items():
-                v           = atual.get(lid, 0.0)
+                v = atual.get(lid, 0.0)
         total_geral += v
         e1, p1 = seta(v, d_ont.get(lid, 0.0))
         e2, p2 = seta(v, d_sem.get(lid, 0.0))
