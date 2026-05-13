@@ -11,87 +11,88 @@ CALLMEBOT_TEL = "5521992971444"
 CALLMEBOT_KEY = os.environ.get("CALLMEBOT_KEY", "SUA_API_KEY_AQUI")
 
 LOJAS = {
-      "1": "Barra Shopping",
-      "3": "Rio Sul",
-      "4": "NorteShopping",
+    "1": "Barra Shopping",
+    "3": "Rio Sul",
+    "4": "NorteShopping",
 }
 
 session = requests.Session()
 
 def login():
-      r = session.get(MOOMBOX_URL + "/user/login")
-      soup = BeautifulSoup(r.text, "html.parser")
-      csrf_tag = soup.find("input", {"name": "_csrf"})
-      if not csrf_tag:
-                print("ERRO: csrf nao encontrado")
-                return
-            csrf = csrf_tag["value"]
+    r = session.get(MOOMBOX_URL + "/user/login")
+    soup = BeautifulSoup(r.text, "html.parser")
+    csrf_tag = soup.find("input", {"name": "_csrf"})
+    if not csrf_tag:
+        print("ERRO: csrf nao encontrado")
+        return
+    csrf = csrf_tag["value"]
     session.post(MOOMBOX_URL + "/user/login", data={
-              "_csrf": csrf,
-              "LoginForm[username]": USUARIO,
-              "LoginForm[password]": SENHA,
-              "LoginForm[rememberMe]": "0",
+        "_csrf": csrf,
+        "LoginForm[username]": USUARIO,
+        "LoginForm[password]": SENHA,
+        "LoginForm[rememberMe]": "0",
     })
     print("Login realizado")
 
-def buscar_totais_hora(data_str, hora):
-      d = urllib.parse.quote(data_str + " - " + data_str)
+def buscar_acumulado_ate_hora(data_str, hora_limite):
+    """Soma todas as transacoes do dia desde 00h ate hora_limite (inclusive)."""
+    d = urllib.parse.quote(data_str + " - " + data_str)
     url = (MOOMBOX_URL + "/zoop/financeiro"
-                      + "?TransacaoPosSearch%5Bdata%5D=" + d
-                      + "&TransacaoPosSearch%5Btipo_pagamento%5D=credit"
-                      + "&TransacaoPosSearch%5Bstatus%5D=succeeded"
-                      + "&_togd9a55727=all")
+           + "?TransacaoPosSearch%5Bdata%5D=" + d
+           + "&TransacaoPosSearch%5Btipo_pagamento%5D=credit"
+           + "&TransacaoPosSearch%5Bstatus%5D=succeeded"
+           + "&_togd9a55727=all")
     r = session.get(url)
     soup = BeautifulSoup(r.text, "html.parser")
     totais = {lid: 0.0 for lid in LOJAS}
     loja_atual = None
     for row in soup.select("table tbody tr"):
-              cols = row.find_all("td")
-              if not cols:
-                            continue
-                        primeira = cols[0].get_text(strip=True)
+        cols = row.find_all("td")
+        if not cols:
+            continue
+        primeira = cols[0].get_text(strip=True)
         if primeira in LOJAS:
-                      loja_atual = primeira
-                      continue
-                  if loja_atual is None or len(cols) < 4:
-                                continue
-                            data_hora_txt = cols[2].get_text(strip=True)
+            loja_atual = primeira
+            continue
+        if loja_atual is None or len(cols) < 4:
+            continue
+        data_hora_txt = cols[2].get_text(strip=True)
         try:
-                      dt = datetime.strptime(data_hora_txt, "%d/%m/%Y %H:%M:%S")
-                      if dt.hour == hora:
-                                        v = cols[3].get_text(strip=True).replace(",", ".").replace(" ", "")
-                                        totais[loja_atual] += float(v)
+            dt = datetime.strptime(data_hora_txt, "%d/%m/%Y %H:%M:%S")
+            if dt.hour <= hora_limite:
+                v = cols[3].get_text(strip=True).replace(",", ".").replace(" ", "")
+                totais[loja_atual] += float(v)
         except Exception:
             pass
     return totais
 
 def seta(val_atual, val_ref):
-      if val_ref == 0:
-                return "novo", "+100%"
-            pct = ((val_atual - val_ref) / val_ref) * 100
+    if val_ref == 0:
+        return "novo", "+100%"
+    pct = ((val_atual - val_ref) / val_ref) * 100
     direcao = "sobe" if pct >= 0 else "desce"
     sinal = "+" if pct >= 0 else ""
     return direcao, sinal + "{:.1f}%".format(pct)
 
 def formatar_brl(v):
-      s = "{:,.2f}".format(v)
+    s = "{:,.2f}".format(v)
     s = s.replace(",", "X").replace(".", ",").replace("X", ".")
     return "R$ " + s
 
 def enviar_whatsapp(msg):
-      url = "https://api.callmebot.com/whatsapp.php"
+    url = "https://api.callmebot.com/whatsapp.php"
     params = {"phone": CALLMEBOT_TEL, "text": msg, "apikey": CALLMEBOT_KEY}
     try:
-              requests.get(url, params=params, timeout=15)
+        requests.get(url, params=params, timeout=15)
         print("WhatsApp enviado!")
-except Exception as e:
+    except Exception as e:
         print("Erro WhatsApp: " + str(e))
 
 def main():
-      agora = datetime.now()
+    agora = datetime.now()
     hora_atual = agora.hour
     if hora_atual < 11 or hora_atual > 22:
-              print("Fora do horario de funcionamento.")
+        print("Fora do horario de funcionamento.")
         return
     print("Iniciando coleta - " + agora.strftime("%d/%m/%Y %H:%M"))
     login()
@@ -99,16 +100,16 @@ def main():
     ontem    = (agora - timedelta(days=1)).strftime("%d/%m/%Y")
     sem_ant  = (agora - timedelta(weeks=1)).strftime("%d/%m/%Y")
     try:
-              if agora.month > 1:
-                            mes_ant = agora.replace(month=agora.month - 1)
-else:
+        if agora.month > 1:
+            mes_ant = agora.replace(month=agora.month - 1)
+        else:
             mes_ant = agora.replace(year=agora.year - 1, month=12)
-except ValueError:
+    except ValueError:
         import calendar
         if agora.month > 1:
-                      m = agora.month - 1
-                      y = agora.year
-else:
+            m = agora.month - 1
+            y = agora.year
+        else:
             m = 12
             y = agora.year - 1
         last_day = calendar.monthrange(y, m)[1]
@@ -118,20 +119,20 @@ else:
     diff = agora.weekday() - ano_ant.weekday()
     ano_ant = ano_ant + timedelta(days=diff)
     ano_ant_str = ano_ant.strftime("%d/%m/%Y")
-    print("Buscando dados para hora " + str(hora_atual) + "h...")
-    atual  = buscar_totais_hora(hoje,         hora_atual)
-    d_ont  = buscar_totais_hora(ontem,        hora_atual)
-    d_sem  = buscar_totais_hora(sem_ant,      hora_atual)
-    d_mes  = buscar_totais_hora(mes_ant_str,  hora_atual)
-    d_ano  = buscar_totais_hora(ano_ant_str,  hora_atual)
+    print("Buscando acumulado ate " + str(hora_atual) + "h...")
+    atual  = buscar_acumulado_ate_hora(hoje,         hora_atual)
+    d_ont  = buscar_acumulado_ate_hora(ontem,        hora_atual)
+    d_sem  = buscar_acumulado_ate_hora(sem_ant,      hora_atual)
+    d_mes  = buscar_acumulado_ate_hora(mes_ant_str,  hora_atual)
+    d_ano  = buscar_acumulado_ate_hora(ano_ant_str,  hora_atual)
     linhas = [
-              "Vendas Cartao Credito - {:02d}h".format(hora_atual),
-              "Data: " + hoje,
+        "Vendas Cartao Credito - acumulado ate {:02d}h".format(hora_atual),
+        "Data: " + hoje,
         "-------------------------",
     ]
     total_geral = 0.0
     for lid, nome in LOJAS.items():
-              v     = atual.get(lid, 0.0)
+        v     = atual.get(lid, 0.0)
         total_geral += v
         e1, p1 = seta(v, d_ont.get(lid, 0.0))
         e2, p2 = seta(v, d_sem.get(lid, 0.0))
@@ -139,10 +140,10 @@ else:
         e4, p4 = seta(v, d_ano.get(lid, 0.0))
         linhas.append("")
         linhas.append("*" + nome + "*: " + formatar_brl(v))
-        linhas.append("  " + e1 + " vs ontem (" + ontem + "): " + formatar_brl(d_ont.get(lid, 0)) + " (" + p1 + ")")
-        linhas.append("  " + e2 + " vs sem.ant (" + sem_ant + "): " + formatar_brl(d_sem.get(lid, 0)) + " (" + p2 + ")")
-        linhas.append("  " + e3 + " vs mes ant (" + mes_ant_str + "): " + formatar_brl(d_mes.get(lid, 0)) + " (" + p3 + ")")
-        linhas.append("  " + e4 + " vs ano ant (" + ano_ant_str + "): " + formatar_brl(d_ano.get(lid, 0)) + " (" + p4 + ")")
+        linhas.append("  " + e1 + " vs ontem ate " + str(hora_atual) + "h (" + ontem + "): " + formatar_brl(d_ont.get(lid, 0)) + " (" + p1 + ")")
+        linhas.append("  " + e2 + " vs sem.ant ate " + str(hora_atual) + "h (" + sem_ant + "): " + formatar_brl(d_sem.get(lid, 0)) + " (" + p2 + ")")
+        linhas.append("  " + e3 + " vs mes ant ate " + str(hora_atual) + "h (" + mes_ant_str + "): " + formatar_brl(d_mes.get(lid, 0)) + " (" + p3 + ")")
+        linhas.append("  " + e4 + " vs ano ant ate " + str(hora_atual) + "h (" + ano_ant_str + "): " + formatar_brl(d_ano.get(lid, 0)) + " (" + p4 + ")")
     linhas.append("")
     linhas.append("-------------------------")
     linhas.append("TOTAL GERAL: " + formatar_brl(total_geral))
@@ -151,4 +152,4 @@ else:
     enviar_whatsapp(mensagem)
 
 if __name__ == "__main__":
-      main()
+    main()
