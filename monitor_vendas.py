@@ -104,12 +104,12 @@ def formatar_brl(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def delta_str(atual, referencia, data_ref_label):
-    diff = atual - referencia
     if referencia == 0:
         return f"  sem dado vs {data_ref_label}"
-    pct = abs(diff) / referencia * 100
-    sinal = "sobe" if diff >= 0 else "cai"
-    return f"  {sinal} vs {data_ref_label}: {formatar_brl(abs(diff))} ({pct:.1f}%)"
+    diff = atual - referencia
+    pct = diff / referencia * 100
+    sinal = "+" if diff >= 0 else ""
+    return f"  vs {data_ref_label}: {formatar_brl(referencia)} ({sinal}{pct:.1f}%)"
 
 def enviar_whatsapp(msg):
     if not CALLMEBOT_KEY:
@@ -158,7 +158,7 @@ def main():
         print("Abortando: falha no login")
         return
 
-    # Buscar totais ÃÂ¢ÃÂÃÂ hoje filtrado por hora, demais dias totais
+    # Buscar totais ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ hoje filtrado por hora, demais dias totais
     totais_hoje    = buscar_zoop(hoje,    hora_max=hora_br)
     totais_ontem   = buscar_zoop(ontem,   hora_max=hora_br)
     totais_sem_ant = buscar_zoop(sem_ant, hora_max=hora_br)
