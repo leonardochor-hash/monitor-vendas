@@ -48,7 +48,7 @@ def login():
 def buscar_zoop(data_str, hora_max=None):
     """
     Busca transacoes Zoop do dia data_str (DD/MM/YYYY).
-    Se hora_max for int, filtra apenas transacoes com hora <= hora_max.
+    Se hora_max for int, filtra apenas transacoes com hora < hora_max (ate hora_max-1:59).
     Retorna dict {loja_id: total_valor_operacao}
     Status: succeeded. Todos os tipos de pagamento (credit, debit, pix).
     """
@@ -86,7 +86,7 @@ def buscar_zoop(data_str, hora_max=None):
             if hora_max is not None:
                 try:
                     hora_transacao = int(data_hora.split(" ")[1].split(":")[0])
-                    if hora_transacao > hora_max:
+                    if hora_transacao >= hora_max:
                         continue
                 except:
                     pass
@@ -158,7 +158,7 @@ def main():
         print("Abortando: falha no login")
         return
 
-    # Buscar totais Ã¢ÂÂ hoje filtrado por hora, demais dias totais
+    # Buscar totais ÃÂ¢ÃÂÃÂ hoje filtrado por hora, demais dias totais
     totais_hoje    = buscar_zoop(hoje,    hora_max=hora_br)
     totais_ontem   = buscar_zoop(ontem,   hora_max=hora_br)
     totais_sem_ant = buscar_zoop(sem_ant, hora_max=hora_br)
