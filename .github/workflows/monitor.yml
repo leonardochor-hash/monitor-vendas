@@ -32,7 +32,6 @@ jobs:
           warp-cli --accept-tos proxy port 40000
           warp-cli --accept-tos connect
           sleep 8
-          echo "WARP status:"
           warp-cli --accept-tos status || true
 
       - uses: actions/setup-python@v4
@@ -47,3 +46,4 @@ jobs:
         env:
           CALLMEBOT_KEY: ${{ secrets.CALLMEBOT_KEY }}
           PROXY_URL: "socks5://127.0.0.1:40000"
+          HORA_SIMULADA: "21"
