@@ -158,12 +158,12 @@ def main():
         print("Abortando: falha no login")
         return
 
-    # Buscar totais â hoje filtrado por hora, demais dias totais
+    # Buscar totais Ã¢ÂÂ hoje filtrado por hora, demais dias totais
     totais_hoje    = buscar_zoop(hoje,    hora_max=hora_br)
-    totais_ontem   = buscar_zoop(ontem)
-    totais_sem_ant = buscar_zoop(sem_ant)
-    totais_mes_ant = buscar_zoop(mes_ant)
-    totais_ano_ant = buscar_zoop(ano_ant)
+    totais_ontem   = buscar_zoop(ontem,   hora_max=hora_br)
+    totais_sem_ant = buscar_zoop(sem_ant, hora_max=hora_br)
+    totais_mes_ant = buscar_zoop(mes_ant, hora_max=hora_br)
+    totais_ano_ant = buscar_zoop(ano_ant, hora_max=hora_br)
 
     linhas = [
         f"Vendas Cartao Credito - {hora_br}h",
