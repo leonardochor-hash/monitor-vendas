@@ -42,5 +42,8 @@ jobs:
         run: python monitor_vendas.py
         env:
           CALLMEBOT_KEY: ${{ secrets.CALLMEBOT_KEY }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_REMETENTE: cap00leonardo@gmail.com
+          EMAIL_DESTINATARIO: leonardochor@gmail.com
           HORA_SIMULADA: ${{ github.event.inputs.hora_simulada }}
           DATA_SIMULADA: ${{ github.event.inputs.data_simulada }}
