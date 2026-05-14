@@ -149,8 +149,8 @@ def main():
     hoje     = agora_br.strftime("%d/%m/%Y")
     ontem    = (agora_br - timedelta(days=1)).strftime("%d/%m/%Y")
     sem_ant  = (agora_br - timedelta(days=7)).strftime("%d/%m/%Y")
-    mes_ant  = (agora_br - timedelta(days=30)).strftime("%d/%m/%Y")
-    ano_ant  = (agora_br - timedelta(days=365)).strftime("%d/%m/%Y")
+    mes_ant  = (agora_br - timedelta(days=28)).strftime("%d/%m/%Y")
+    ano_ant  = (agora_br - timedelta(days=364)).strftime("%d/%m/%Y")
 
     print(f"Horario Brasilia: {agora_br.strftime('%d/%m/%Y %H:%M')}")
 
@@ -158,7 +158,7 @@ def main():
         print("Abortando: falha no login")
         return
 
-    # Buscar totais — hoje filtrado por hora, demais dias totais
+    # Buscar totais â hoje filtrado por hora, demais dias totais
     totais_hoje    = buscar_zoop(hoje,    hora_max=hora_br)
     totais_ontem   = buscar_zoop(ontem)
     totais_sem_ant = buscar_zoop(sem_ant)
