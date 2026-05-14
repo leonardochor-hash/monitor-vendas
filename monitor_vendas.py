@@ -45,9 +45,9 @@ def login():
     csrf = csrf_tag["value"]
     resp = session.post(MOOMBOX_URL + "/user/login", data={
         "_csrf": csrf,
-        "LoginForm[username]": USUARIO,
-        "LoginForm[password]": SENHA,
-        "LoginForm[rememberMe]": "0",
+        "login-form[login]": USUARIO,
+        "login-form[password]": SENHA,
+        "login-form[rememberMe]": "0",
     }, timeout=30)
     if "logout" in resp.text.lower():
         print("Login OK")
