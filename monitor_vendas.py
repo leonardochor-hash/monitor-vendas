@@ -154,18 +154,25 @@ def enviar_email(assunto, corpo_texto, corpo_html=None):
 
 def montar_html(linhas_texto):
     """Converte o relatorio texto em HTML formatado para email."""
+    import html as html_lib
     html = """<html><body style="font-family:monospace;font-size:14px;">"""
     html += "<pre style='background:#f8f8f8;padding:16px;border-radius:6px;'>"
-    import html as html_lib
     html += html_lib.escape(linhas_texto)
     html += "</pre></body></html>"
     return html
 
+def normalizar_hora_str(hora_str):
+    """Converte '20' ou '20:00' para '20:00'."""
+    hora_str = hora_str.strip()
+    if ":" not in hora_str:
+        return hora_str + ":00"
+    return hora_str
+
 def main():
     if DATA_SIMULADA:
-        agora_br = datetime.strptime(DATA_SIMULADA + " " + (HORA_SIMULADA or "20:00"), "%d/%m/%Y %H:%M")
+        hora_str = normalizar_hora_str(HORA_SIMULADA) if HORA_SIMULADA else "20:00"
+        agora_br = datetime.strptime(DATA_SIMULADA + " " + hora_str, "%d/%m/%Y %H:%M")
     else:
-        from datetime import timezone
         import pytz
         tz_br = pytz.timezone("America/Sao_Paulo")
         agora_br = datetime.now(tz_br).replace(tzinfo=None)
