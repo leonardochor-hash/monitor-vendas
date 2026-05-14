@@ -175,18 +175,19 @@ def main():
     # Brasilia = UTC-3
     agora_br  = agora_utc - timedelta(hours=3)
     hora_br   = agora_br.hour
-        if DATA_SIMULADA:
-                    try:
-                                    agora_br = datetime.strptime(DATA_SIMULADA, "%d/%m/%Y").replace(
-                                                        hour=int(HORA_SIMULADA) if HORA_SIMULADA else agora_br.hour,
-                                                        minute=0, second=0)
-                                    print(f"[SIMULACAO] Data/hora: {agora_br.strftime('%d/%m/%Y %H:%M')}")
-                                    hora_br = agora_br.hour
-                    except Exception as e:
-                                    print(f"Erro simulacao: {e}")
-        elif HORA_SIMULADA:
+    if DATA_SIMULADA:
+        try:
+            agora_br = datetime.strptime(DATA_SIMULADA, "%d/%m/%Y").replace(
+                hour=int(HORA_SIMULADA) if HORA_SIMULADA else agora_br.hour,
+                minute=0, second=0)
+            print(f"[SIMULACAO] Data/hora: {agora_br.strftime('%d/%m/%Y %H:%M')}")
+            hora_br = agora_br.hour
+        except Exception as e:
+            print(f"Erro simulacao: {e}")
+    elif HORA_SIMULADA:
         hora_br = int(HORA_SIMULADA)
         print(f"[SIMULACAO] Hora forcada: {hora_br}h")
+
 
     HORA_INICIO = 11
     HORA_FIM    = 22
